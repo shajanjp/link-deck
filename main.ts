@@ -29,7 +29,7 @@ app.get("/", async (c) => {
 });
 
 // --- Start ---
-const port = parseInt(Deno.env.get("PORT") ?? "80", 10);
+const port = parseInt(Deno.env.get("PORT") ?? "8090", 10);
 Deno.serve({ port }, app.fetch);
 
 console.log(`Server running at http://localhost:${port}`);
@@ -45,4 +45,3 @@ async function getIndexHtml(): Promise<string> {
   }
   return indexHtml;
 }
-
