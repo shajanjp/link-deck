@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "dev": "sudo deno run --allow-net --allow-read --allow-env --watch --unstable-kv main.ts",
+    "start": "sudo deno run --allow-net --allow-read --allow-env --unstable-kv main.ts"
+  },
+  "imports": {
+    "hono": "jsr:@hono/hono@^4",
+    "hono/": "jsr:@hono/hono@^4/"
+  }
+}

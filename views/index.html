@@ -1,0 +1,562 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bookmarks</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --primary: #6366f1;
+      --primary-light: #eef2ff;
+      --text: #334155;
+      --text-secondary: #94a3b8;
+      --border: #f1f5f9;
+      --danger: #ef4444;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .header {
+      padding: 24px 32px 16px;
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .header h1 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all .12s ease;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .btn:hover { background: #f1f5f9; color: var(--text); }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: #4f46e5; color: white; }
+    .btn-danger { color: var(--danger); }
+    .btn-danger:hover { background: #fef2f2; color: var(--danger); }
+
+    /* Main */
+    .main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px 32px 64px;
+    }
+
+    /* Bookmarks grid - 5 cols on desktop */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0;
+      transition: border-color .15s;
+    }
+    .card:hover {
+      border-color: #e2e8f0;
+    }
+
+    .card-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      width: 100%;
+    }
+
+    .card-icon {
+      width: 128px;
+      height: 128px;
+      border-radius: 24px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-bottom: 12px;
+    }
+    .card-icon svg { width: 56px; height: 56px; }
+
+    .card-body {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 550;
+      line-height: 1.35;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 2px;
+    }
+
+    .card-url {
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+      padding-top: 8px;
+      width: 100%;
+      opacity: 0;
+      transition: opacity .12s ease;
+      border-top: 1px solid transparent;
+    }
+    .card:hover .card-actions {
+      opacity: 1;
+      border-color: var(--border);
+    }
+    .card-actions .btn {
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+      width: 100%;
+    }
+    .card:hover .card-actions {
+      opacity: 1;
+    }
+    .card-actions .btn {
+      padding: 4px 6px;
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+    .empty svg { width: 56px; height: 56px; margin: 0 auto 16px; opacity: .4; }
+    .empty h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+    .empty p { font-size: 0.9rem; }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 32px;
+    }
+    .page-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      font-family: inherit;
+      min-width: 38px;
+    }
+    .page-btn:hover { background: #f8fafc; color: var(--text); border-color: #cbd5e1; }
+    .page-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .page-btn.active:hover { background: var(--primary-hover); }
+    .page-btn:disabled {
+      opacity: .35;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 32px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.15);
+      position: relative;
+      animation: modalIn .2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal h2 {
+      font-size: 1.15rem;
+      font-weight: 650;
+      letter-spacing: -.01em;
+      margin-bottom: 24px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      transition: all .15s;
+      font-family: inherit;
+    }
+    .modal-close:hover { background: #f1f5f9; color: var(--text); }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 550;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .form-group input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.12);
+    }
+    .form-hint {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 20px;
+    }
+    .form-col {
+      flex: 1;
+      min-width: 0;
+    }
+    .form-col:last-child {
+      max-width: 200px;
+    }
+
+    /* Preview card in modal */
+    .preview-card {
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 16px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .preview-card .card-icon {
+      width: 128px;
+      height: 128px;
+      border-radius: 24px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .preview-card .card-icon svg { width: 56px; height: 56px; }
+    .preview-card .card-body { width: 100%; min-width: 0; }
+    .preview-card .card-title {
+      font-size: 0.78rem;
+      font-weight: 550;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 2px;
+    }
+    .preview-card .card-url {
+      font-size: 0.66rem;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .form-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,.12);
+      animation: slideIn .25s ease;
+      max-width: 360px;
+    }
+    .toast-success { background: #059669; color: white; }
+    .toast-error { background: #dc2626; color: white; }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Icon preview in form */
+
+
+    /* Color picker */
+    .color-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 4px;
+    }
+    .color-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all .12s ease;
+      flex-shrink: 0;
+    }
+    .color-swatch:hover {
+      transform: scale(1.15);
+    }
+    .color-swatch.selected {
+      border-color: var(--text);
+      box-shadow: 0 0 0 1.5px var(--surface);
+    }
+
+    /* Skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius);
+      height: 140px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @media (max-width: 1050px) {
+      .grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 850px) {
+      .grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .header-inner { flex-direction: column; align-items: stretch; }
+      .header-actions { justify-content: stretch; }
+      .header-actions .btn { flex: 1; justify-content: center; }
+      .main { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <h1>
+        <i data-lucide="bookmark" style="width:24px;height:24px;color:#6366f1"></i>
+        Bookmarks
+      </h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" id="addBtn">
+          <i data-lucide="plus" style="width:16px;height:16px"></i>
+          Add
+        </button>
+        <button class="btn" id="exportBtn">
+          <i data-lucide="download" style="width:16px;height:16px"></i>
+          Export
+        </button>
+        <button class="btn" id="importBtn">
+          <i data-lucide="upload" style="width:16px;height:16px"></i>
+          Import
+        </button>
+        <input type="file" id="importFile" accept=".json" hidden />
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div id="grid" class="grid"></div>
+    <div id="pagination"></div>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <button class="modal-close" id="modalClose">&times;</button>
+      <h2 id="modalTitle">Add Bookmark</h2>
+      <form id="bookmarkForm" autocomplete="off">
+        <input type="hidden" id="bookmarkId" />
+
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input type="text" id="title" required />
+        </div>
+
+        <div class="form-group">
+          <label for="url">URL</label>
+          <input type="url" id="url" required placeholder="https://example.com" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <div class="form-group">
+              <label for="icon">Icon</label>
+              <input type="text" id="icon" placeholder="globe" value="globe" />
+              <div class="form-hint">
+                Lucide icon name &mdash; e.g. globe, github, twitter, book-open, link
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Icon Color</label>
+              <div class="color-picker" id="colorPicker">
+                <input type="hidden" id="color" value="#6366f1" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-col">
+            <label>Preview</label>
+            <div class="preview-card" id="previewCard">
+              <div class="card-icon" id="previewIcon" style="color:#6366f1"><i data-lucide="globe"></i></div>
+              <div class="card-body">
+                <div class="card-title" id="previewTitle">My Bookmark</div>
+                <div class="card-url" id="previewUrl">https://example.com</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="tags">Tags</label>
+          <input type="text" id="tags" placeholder="design, dev, reference" />
+          <div class="form-hint">Comma-separated list</div>
+        </div>
+
+        <div class="form-footer">
+          <button type="button" class="btn" id="modalCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/static/app.js"></script>
+</body>
