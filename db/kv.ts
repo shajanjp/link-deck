@@ -13,6 +13,20 @@ export interface Bookmark {
 export type BookmarkInput = Pick<Bookmark, "title" | "url" | "icon" | "color" | "tags" | "useFavicon">;
 export type BookmarkExport = BookmarkInput;
 
+const KV_GET_LIMIT = 10;
+
+async function getManyBatched<T>(kv: Deno.Kv, keys: Deno.KvKey[]): Promise<T[]> {
+  const results: T[] = [];
+  for (let i = 0; i < keys.length; i += KV_GET_LIMIT) {
+    const batch = keys.slice(i, i + KV_GET_LIMIT);
+    const entries = await kv.getMany(batch);
+    for (const entry of entries) {
+      if (entry.value) results.push(entry.value as T);
+    }
+  }
+  return results;
+}
+
 const IDS_KEY = ["meta", "ids"];
 
 let kvInstance: Deno.Kv | null = null;
@@ -42,12 +56,7 @@ export async function listBookmarks(
   }
 
   const keys = pageIds.map((id) => ["bookmark", id] as Deno.KvKey);
-  const entries = await kv.getMany(keys);
-  const bookmarks: Bookmark[] = [];
-  for (const entry of entries) {
-    if (entry.value) bookmarks.push(entry.value as Bookmark);
-  }
-
+  const bookmarks = await getManyBatched<Bookmark>(kv, keys);
   return { bookmarks, total };
 }
 
@@ -129,11 +138,9 @@ export async function getAllBookmarksForExport(): Promise<BookmarkExport[]> {
   if (ids.length === 0) return [];
 
   const keys = ids.map((id) => ["bookmark", id] as Deno.KvKey);
-  const entries = await kv.getMany(keys);
+  const bookmarks = await getManyBatched<Bookmark>(kv, keys);
 
-  return entries
-    .map((e) => e.value as Bookmark | null)
-    .filter((b): b is Bookmark => b !== null)
+  return bookmarks
     .map(({ id: _, createdAt: __, updatedAt: ___, ...rest }) => rest);
 }
 
