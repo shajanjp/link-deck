@@ -2,6 +2,8 @@
 
 A lightweight bookmark manager with a clean, sharp-edged UI. Built with Deno, Hono, and Deno KV.
 
+![Link Deck screenshot](docs/link-deck-desktop-screenshot.jpg)
+
 ## Features
 
 - **Bookmark CRUD** — Create, read, update, and delete bookmarks with title, URL, icon, and tags
