@@ -9,16 +9,20 @@ app.route("/api/bookmarks", bookmarks);
 app.route("/api", bulk);
 
 // --- Static files ---
-let appJsCache: string | null = null;
-
 app.get("/static/app.js", async (c) => {
-  if (!appJsCache) {
-    appJsCache = await Deno.readTextFile(`${Deno.cwd()}/static/app.js`);
-  }
-  return new Response(appJsCache, {
+  const content = await Deno.readTextFile(`${Deno.cwd()}/static/app.js`);
+  return new Response(content, {
     headers: {
       "Content-Type": "application/javascript",
-      "Cache-Control": "public, max-age=3600",
+    },
+  });
+});
+
+app.get("/static/logo.svg", async (c) => {
+  const content = await Deno.readTextFile(`${Deno.cwd()}/static/logo.svg`);
+  return new Response(content, {
+    headers: {
+      "Content-Type": "image/svg+xml",
     },
   });
 });
@@ -37,11 +41,6 @@ console.log(`Server running at http://localhost:${port}`);
 // ---------------------------------------------------------------------------
 // HTML template
 // ---------------------------------------------------------------------------
-let indexHtml: string | null = null;
-
 async function getIndexHtml(): Promise<string> {
-  if (!indexHtml) {
-    indexHtml = await Deno.readTextFile(`${Deno.cwd()}/views/index.html`);
-  }
-  return indexHtml;
+  return await Deno.readTextFile(`${Deno.cwd()}/views/index.html`);
 }

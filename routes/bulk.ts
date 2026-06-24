@@ -16,7 +16,7 @@ bulk.get("/export", async (c) => {
   return new Response(JSON.stringify(payload, null, 2), {
     headers: {
       "Content-Type": "application/json",
-      "Content-Disposition": `attachment; filename="bookmarks-export.json"`,
+      "Content-Disposition": `attachment; filename="linkdeck-export.json"`,
     },
   });
 });
@@ -33,10 +33,10 @@ bulk.post("/import", async (c) => {
   const { bookmarks } = body as { bookmarks?: unknown[] };
 
   if (!Array.isArray(bookmarks) || bookmarks.length === 0) {
-    return c.json({ error: "Bookmarks array is required and must not be empty" }, 400);
+    return c.json({ error: "Links array is required and must not be empty" }, 400);
   }
 
-  const valid: Array<{ title: string; url: string; icon: string; color: string; tags: string[] }> = [];
+  const valid: Array<{ title: string; url: string; icon: string; color: string; tags: string[]; useFavicon: boolean }> = [];
   const errors: Array<{ index: number; reason: string }> = [];
 
   for (let i = 0; i < bookmarks.length; i++) {
@@ -51,17 +51,18 @@ bulk.post("/import", async (c) => {
       icon: b.icon ? String(b.icon).trim() : "globe",
       color: b.color ? String(b.color).trim() : "#6366f1",
       tags: Array.isArray(b.tags) ? b.tags.map(String) : [],
+      useFavicon: b.useFavicon === true,
     });
   }
 
   if (valid.length === 0) {
-    return c.json({ error: "No valid bookmarks to import", errors }, 400);
+    return c.json({ error: "No valid links to import", errors }, 400);
   }
 
   const count = await importBookmarks(valid);
 
   return c.json({
-    message: `Imported ${count} bookmark(s)`,
+    message: `Imported ${count} link(s)`,
     imported: count,
     errors: errors.length > 0 ? errors : undefined,
   }, errors.length > 0 ? 207 : 201);

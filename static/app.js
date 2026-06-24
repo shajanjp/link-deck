@@ -32,6 +32,12 @@ const colorInput = $("#color");
 const previewIcon = $("#previewIcon");
 const previewTitle = $("#previewTitle");
 const previewUrl = $("#previewUrl");
+const useFaviconInput = $("#useFavicon");
+const customIconFields = $("#customIconFields");
+const websiteIconFields = $("#websiteIconFields");
+const faviconImg = $("#faviconImg");
+const faviconStatus = $("#faviconStatus");
+const modeBtns = $$(".mode-btn");
 
 const ICON_COLORS = [
   "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#ef4444",
@@ -80,7 +86,7 @@ async function loadBookmarks(page = 1) {
     renderPagination(data.pagination);
   } catch (err) {
     grid.innerHTML =
-      `<div class="empty"><p style="color:#ef4444">Failed to load bookmarks: ${err.message}</p></div>`;
+      `<div class="empty"><p style="color:#ef4444">Failed to load links: ${err.message}</p></div>`;
   }
 }
 
@@ -89,8 +95,8 @@ function renderBookmarks(bookmarks) {
     grid.innerHTML = `
       <div class="empty" style="grid-column:1/-1">
         <i data-lucide="bookmark-x" style="width:56px;height:56px;opacity:.4"></i>
-        <h2>No bookmarks yet</h2>
-        <p>Click <strong>Add</strong> to create your first bookmark.</p>
+        <h2>No links yet</h2>
+        <p>Click <strong>+</strong> to create your first link.</p>
       </div>
     `;
     lucide.createIcons();
@@ -99,10 +105,15 @@ function renderBookmarks(bookmarks) {
 
   grid.innerHTML = bookmarks
     .map(
-      (b) => `
+      (b) => {
+        const faviconSrc = getFaviconUrl(b.url);
+        const iconHtml = b.useFavicon && faviconSrc
+          ? `<img src="${escapeHtml(faviconSrc)}" alt="" style="width:56px;height:56px;border-radius:0;object-fit:contain" />`
+          : `<i data-lucide="${b.icon || "globe"}"></i>`;
+        return `
     <div class="card" data-id="${b.id}">
       <a href="${escapeHtml(b.url)}" class="card-link" target="_blank" rel="noopener">
-        <div class="card-icon" style="color:${escapeHtml(b.color || "#6366f1")}"><i data-lucide="${b.icon || "globe"}"></i></div>
+        <div class="card-icon" style="color:${escapeHtml(b.color || "#6366f1")}">${iconHtml}</div>
         <div class="card-body">
           <div class="card-title">${escapeHtml(b.title)}</div>
           <div class="card-url">${escapeHtml(b.url)}</div>
@@ -116,7 +127,8 @@ function renderBookmarks(bookmarks) {
           <i data-lucide="trash-2" style="width:14px;height:14px"></i>
         </button>
       </div>
-    </div>`
+    </div>`;
+      }
     )
     .join("");
 
@@ -188,10 +200,10 @@ function renderPagination(pagination) {
 // CRUD operations
 // ---------------------------------------------------------------------------
 async function deleteBookmark(id) {
-  if (!confirm("Delete this bookmark?")) return;
+  if (!confirm("Delete this link?")) return;
   try {
     await api(`/api/bookmarks/${id}`, { method: "DELETE" });
-    toast("Bookmark deleted");
+    toast("Link deleted");
     loadBookmarks(currentPage);
   } catch (err) {
     toast(err.message, "error");
@@ -209,20 +221,24 @@ async function editBookmark(id) {
 
 function openModal(bookmark) {
   if (bookmark) {
-    modalTitle.textContent = "Edit Bookmark";
+    modalTitle.textContent = "Edit Link";
     bookmarkId.value = bookmark.id;
     titleInput.value = bookmark.title;
     urlInput.value = bookmark.url;
     iconInput.value = bookmark.icon || "globe";
     colorInput.value = bookmark.color || "#6366f1";
     tagsInput.value = bookmark.tags.join(", ");
+    setIconMode(bookmark.useFavicon ? "website" : "custom");
   } else {
-    modalTitle.textContent = "Add Bookmark";
+    modalTitle.textContent = "Add Link";
     bookmarkId.value = "";
     form.reset();
     iconInput.value = "globe";
     colorInput.value = ICON_COLORS[0];
+    setIconMode("custom");
   }
+  // Trigger favicon fetch for current URL
+  urlInput.dispatchEvent(new Event("input"));
   updatePreview();
   selectColor(colorInput.value);
   overlay.classList.add("open");
@@ -235,6 +251,7 @@ function closeModal() {
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = bookmarkId.value;
+  const useFavicon = useFaviconInput.value === "true";
   const data = {
     title: titleInput.value.trim(),
     url: urlInput.value.trim(),
@@ -244,6 +261,7 @@ form.addEventListener("submit", async (e) => {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
+    useFavicon,
   };
 
   try {
@@ -252,13 +270,13 @@ form.addEventListener("submit", async (e) => {
         method: "PUT",
         body: JSON.stringify(data),
       });
-      toast("Bookmark updated");
+      toast("Link updated");
     } else {
       await api("/api/bookmarks", {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast("Bookmark created");
+      toast("Link created");
     }
     closeModal();
     loadBookmarks(id ? currentPage : 1);
@@ -281,7 +299,7 @@ exportBtn.addEventListener("click", async () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `bookmarks-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `linkdeck-export-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast("Export downloaded");
@@ -339,11 +357,19 @@ document.addEventListener("keydown", (e) => {
 function updatePreview() {
   const icon = iconInput.value.trim() || "globe";
   const color = colorInput.value;
-  const title = titleInput.value.trim() || "My Bookmark";
+  const title = titleInput.value.trim() || "My Link";
   const url = urlInput.value.trim() || "https://example.com";
 
-  previewIcon.style.color = color;
-  previewIcon.innerHTML = `<i data-lucide="${escapeHtml(icon)}" style="width:36px;height:36px"></i>`;
+  if (useFaviconInput.value === "true") {
+    const faviconUrl = getFaviconUrl(url);
+    previewIcon.style.color = "";
+    previewIcon.innerHTML = faviconUrl
+      ? `<img src="${escapeHtml(faviconUrl)}" alt="" style="width:48px;height:48px;border-radius:0;object-fit:contain" />`
+      : `<i data-lucide="link" style="width:36px;height:36px"></i>`;
+  } else {
+    previewIcon.style.color = color;
+    previewIcon.innerHTML = `<i data-lucide="${escapeHtml(icon)}" style="width:36px;height:36px"></i>`;
+  }
   previewTitle.textContent = title;
   previewUrl.textContent = url;
   try { lucide.createIcons(); } catch {}
@@ -379,6 +405,51 @@ function buildColorPicker() {
 }
 
 buildColorPicker();
+
+// ---------------------------------------------------------------------------
+// Icon mode & favicon
+// ---------------------------------------------------------------------------
+function getFaviconUrl(pageUrl) {
+  try {
+    const u = new URL(pageUrl);
+    return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`;
+  } catch {
+    return null;
+  }
+}
+
+function setIconMode(mode) {
+  const isWebsite = mode === "website";
+  useFaviconInput.value = isWebsite ? "true" : "false";
+  customIconFields.style.display = isWebsite ? "none" : "";
+  websiteIconFields.style.display = isWebsite ? "" : "none";
+  modeBtns.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.mode === mode);
+  });
+  if (isWebsite) {
+    refreshFavicon();
+  }
+  updatePreview();
+}
+
+modeBtns.forEach((btn) => {
+  btn.addEventListener("click", () => setIconMode(btn.dataset.mode));
+});
+
+function refreshFavicon() {
+  const url = urlInput.value.trim();
+  const faviconUrl = getFaviconUrl(url);
+  if (faviconUrl) {
+    faviconImg.src = faviconUrl;
+  } else {
+    faviconImg.src = "";
+  }
+}
+
+urlInput.addEventListener("input", () => {
+  refreshFavicon();
+  updatePreview();
+});
 
 // ---------------------------------------------------------------------------
 // Helpers

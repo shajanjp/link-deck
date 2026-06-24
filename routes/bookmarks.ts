@@ -32,7 +32,7 @@ bookmarks.get("/:id", async (c) => {
   const id = c.req.param("id");
   const bookmark = await getBookmark(id);
   if (!bookmark) {
-    return c.json({ error: "Bookmark not found" }, 404);
+    return c.json({ error: "Link not found" }, 404);
   }
   return c.json(bookmark);
 });
@@ -40,7 +40,7 @@ bookmarks.get("/:id", async (c) => {
 // Create bookmark
 bookmarks.post("/", async (c) => {
   const body = await c.req.json();
-  const { title, url, icon, color, tags } = body;
+  const { title, url, icon, color, tags, useFavicon } = body;
 
   if (!title || !url) {
     return c.json({ error: "Title and URL are required" }, 400);
@@ -52,6 +52,7 @@ bookmarks.post("/", async (c) => {
     icon: String(icon ?? "globe").trim(),
     color: String(color ?? "#6366f1").trim(),
     tags: Array.isArray(tags) ? tags.map(String) : [],
+    useFavicon: useFavicon === true,
   });
 
   return c.json(bookmark, 201);
@@ -61,7 +62,7 @@ bookmarks.post("/", async (c) => {
 bookmarks.put("/:id", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
-  const { title, url, icon, color, tags } = body;
+  const { title, url, icon, color, tags, useFavicon } = body;
 
   const data: Record<string, unknown> = {};
   if (title !== undefined) data.title = String(title).trim();
@@ -69,10 +70,11 @@ bookmarks.put("/:id", async (c) => {
   if (icon !== undefined) data.icon = String(icon).trim();
   if (color !== undefined) data.color = String(color).trim();
   if (tags !== undefined) data.tags = Array.isArray(tags) ? tags.map(String) : [];
+  if (useFavicon !== undefined) data.useFavicon = useFavicon === true;
 
   const bookmark = await updateBookmark(id, data);
   if (!bookmark) {
-    return c.json({ error: "Bookmark not found" }, 404);
+    return c.json({ error: "Link not found" }, 404);
   }
   return c.json(bookmark);
 });
@@ -82,9 +84,9 @@ bookmarks.delete("/:id", async (c) => {
   const id = c.req.param("id");
   const deleted = await deleteBookmark(id);
   if (!deleted) {
-    return c.json({ error: "Bookmark not found" }, 404);
+    return c.json({ error: "Link not found" }, 404);
   }
-  return c.json({ message: "Bookmark deleted" });
+  return c.json({ message: "Link deleted" });
 });
 
 export { bookmarks };

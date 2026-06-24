@@ -5,11 +5,12 @@ export interface Bookmark {
   icon: string;
   color: string;
   tags: string[];
+  useFavicon: boolean;
   createdAt: number;
   updatedAt: number;
 }
 
-export type BookmarkInput = Pick<Bookmark, "title" | "url" | "icon" | "color" | "tags">;
+export type BookmarkInput = Pick<Bookmark, "title" | "url" | "icon" | "color" | "tags" | "useFavicon">;
 export type BookmarkExport = BookmarkInput;
 
 const IDS_KEY = ["meta", "ids"];
